@@ -1,0 +1,34 @@
+{
+  "name": "screenright-client-nodejs",
+  "version": "1.0.0",
+  "description": "screenright's nodejs client library",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/screenright/screenright-client-nodejs.git"
+  },
+  "keywords": [
+    "screenright"
+  ],
+  "author": "Takeru Narita",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/screenright/screenright-client-nodejs/issues"
+  },
+  "homepage": "https://github.com/screenright/screenright-client-nodejs#readme",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "node-fetch": "^3.3.1",
+    "typescript": "^5.0.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.34.0",
+    "@types/node": "^20.2.3",
+    "@types/node-fetch": "^2.6.4",
+    "ts-node": "^10.9.1"
+  }
+}
