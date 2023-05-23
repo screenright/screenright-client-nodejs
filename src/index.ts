@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import { Page } from '@playwright/test'
 import fetch from 'node-fetch'
+import process from 'node:process'
 
 type ScreenshotItemAttribute = {
   key: string
@@ -19,41 +20,52 @@ const result: Result = { screenshotItemAttributes: [] }
 
 let deploymentId: string | null = null
 
+const baseUrl = () => {
+  return `${process.env.SCREENRIGHT_ENDPOINT}/client_api`
+}
+
 export const initializeScreenwright = async () => {
 
-  const baseUrl = `${process.env.SCREENRIGHT_ENDPOINT}/client_api`
   const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
-  const deploymentToken = process.env.SCREENRIGHT_DEVELOPMENT_TOKEN
-  const response = await fetch(`${baseUrl}/diagrams/${diagramId}/deployments`, {
-    method: 'POST',
-    body: JSON.stringify({ deployment_token: deploymentToken }),
+  const deploymentToken = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN
+  try {
+    const response = await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments`, {
+      method: 'POST',
+      body: JSON.stringify({ deployment_token: deploymentToken }),
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    const body = await response.text()
+    const json = JSON.parse(body)
+    deploymentId = json.id
+  } catch(e: any) {
+    console.error('[ScreenRight] Error catch', e.message)
+  }
+}
+
+export const finalize = async () => {
+  if (!deploymentId) {
+    return
+  }
+
+  fs.writeFileSync(
+    `${tmpDir}/result.json`,
+    JSON.stringify({
+      screenshotItemAttributes: result.screenshotItemAttributes,
+    })
+  )
+
+  const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
+  const deploymentToken = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN
+  await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/done_upload`, {
+    method: 'PUT',
+    body: JSON.stringify({ deployment_token: deploymentToken, screenshotItemAttributes: result.screenshotItemAttributes }),
     headers: { 'Content-Type': 'application/json' }
   })
 
-  const body = await response.text()
-  const json = JSON.parse(body)
-  deploymentId = json.id
-
-  process.on('exit', async (exitCode) => {
-    if (exitCode === 0) {
-      fs.writeFileSync(
-        `${tmpDir}/result.json`,
-        JSON.stringify({
-          screenshotItemAttributes: result.screenshotItemAttributes,
-        })
-      )
-
-      await fetch(`${baseUrl}/diagrams/${diagramId}/deployments/${deploymentId}/done_upload`, {
-        method: 'PUT',
-        body: JSON.stringify({ deployment_token: deploymentToken }),
-        headers: { 'Content-Type': 'application/json' }
-      })
-
-    }
-  })
+  deploymentId = null
 }
 
-initializeScreenwright()
 export const capture = async (
   page: Page,
   key: string,
