@@ -2,6 +2,7 @@ import * as fs from 'fs'
 import { Page } from '@playwright/test'
 import fetch from 'node-fetch'
 import process from 'node:process'
+import FormData from 'form-data'
 
 type ScreenshotItemAttribute = {
   key: string
@@ -19,15 +20,25 @@ const tmpDir = 'screenright/tmp'
 const result: Result = { screenshotItemAttributes: [] }
 
 let deploymentId: string | null = null
+const deploymentToken: string = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN || ''
 
 const baseUrl = () => {
   return `${process.env.SCREENRIGHT_ENDPOINT}/client_api`
 }
 
+const errorOccurred = (message: string) => {
+  console.error('[ScreenRight] Error occurred', message)
+  deploymentId = null
+}
+
 export const initializeScreenwright = async () => {
 
   const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
-  const deploymentToken = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN
+  if (!diagramId || !deploymentToken) {
+    errorOccurred('Not set require environments.')
+    return
+  }
+
   try {
     const response = await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments`, {
       method: 'POST',
@@ -35,11 +46,15 @@ export const initializeScreenwright = async () => {
       headers: { 'Content-Type': 'application/json' }
     })
 
+    if (!response.ok) {
+      errorOccurred('Failed create deployment.')
+    }
+
     const body = await response.text()
     const json = JSON.parse(body)
     deploymentId = json.id
   } catch(e: any) {
-    console.error('[ScreenRight] Error catch', e.message)
+    errorOccurred(e.message)
   }
 }
 
@@ -56,10 +71,9 @@ export const finalize = async () => {
   )
 
   const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
-  const deploymentToken = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN
   await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/done_upload`, {
     method: 'PUT',
-    body: JSON.stringify({ deployment_token: deploymentToken, screenshotItemAttributes: result.screenshotItemAttributes }),
+    body: JSON.stringify({ deployment_token: deploymentToken, blueprint: { screenshotItemAttributes: result.screenshotItemAttributes } }),
     headers: { 'Content-Type': 'application/json' }
   })
 
@@ -76,14 +90,38 @@ export const capture = async (
     return
   }
 
-  fs.mkdirSync(tmpDir, { recursive: true })
-  const path = `${tmpDir}/${key}.png`
-  await page.screenshot({ path, fullPage: true })
+  const fileName = `${key}.png`
+  const outPath = `${tmpDir}/${fileName}`
+  try {
+    fs.mkdirSync(tmpDir, { recursive: true })
+    const buffer = new Uint8Array(await page.screenshot({ path: outPath, fullPage: true }))
+    const formData = new FormData()
+
+    formData.append('file', fs.createReadStream(outPath))
+
+    const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
+    const response = await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/screenshot`, {
+      method: 'POST',
+      headers: {
+        'X-File-Key': key,
+        'X-Deployment-Token': deploymentToken
+      },
+      body: formData
+    })
+
+    if (!response.ok) {
+      errorOccurred('Faild screenshot upload')
+      return
+    }
+  } catch(e: any) {
+    errorOccurred(`capture: ${key}, ${outPath}, ${e.message}`)
+    return
+  }
 
   const attribute: ScreenshotItemAttribute = {
     key,
     title,
-    src: path,
+    src: outPath,
     childrens: [],
   }
 
