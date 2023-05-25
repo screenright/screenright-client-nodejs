@@ -7,15 +7,12 @@ import FormData from 'form-data'
 type ScreenshotItemAttribute = {
   key: string
   title: string
-  src: string
   childrens: ScreenshotItemAttribute[]
 }
 
 type Result = {
   screenshotItemAttributes: ScreenshotItemAttribute[]
 }
-
-const tmpDir = 'screenright/tmp'
 
 const result: Result = { screenshotItemAttributes: [] }
 
@@ -63,17 +60,10 @@ export const finalize = async () => {
     return
   }
 
-  fs.writeFileSync(
-    `${tmpDir}/result.json`,
-    JSON.stringify({
-      screenshotItemAttributes: result.screenshotItemAttributes,
-    })
-  )
-
   const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
   await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/done_upload`, {
     method: 'PUT',
-    body: JSON.stringify({ deployment_token: deploymentToken, blueprint: { screenshotItemAttributes: result.screenshotItemAttributes } }),
+    body: JSON.stringify({ deployment_token: deploymentToken, blueprint: JSON.stringify({ screenshotItemAttributes: result.screenshotItemAttributes}) }),
     headers: { 'Content-Type': 'application/json' }
   })
 
@@ -90,21 +80,19 @@ export const capture = async (
     return
   }
 
-  const fileName = `${key}.png`
-  const outPath = `${tmpDir}/${fileName}`
+  const fileName = `${key}.jpg`
   try {
-    fs.mkdirSync(tmpDir, { recursive: true })
-    const buffer = new Uint8Array(await page.screenshot({ path: outPath, fullPage: true }))
+    const buffer = await page.screenshot({ fullPage: true, type: 'jpeg' })
     const formData = new FormData()
 
-    formData.append('file', fs.createReadStream(outPath))
+    formData.append('file', buffer, fileName)
 
     const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
     const response = await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/screenshot`, {
       method: 'POST',
       headers: {
         'X-File-Key': key,
-        'X-Deployment-Token': deploymentToken
+        'X-Deployment-Token': deploymentToken,
       },
       body: formData
     })
@@ -114,14 +102,13 @@ export const capture = async (
       return
     }
   } catch(e: any) {
-    errorOccurred(`capture: ${key}, ${outPath}, ${e.message}`)
+    errorOccurred(`capture: ${key}, ${e.message}`)
     return
   }
 
   const attribute: ScreenshotItemAttribute = {
     key,
     title,
-    src: outPath,
     childrens: [],
   }
 
