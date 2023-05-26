@@ -7,6 +7,7 @@ import FormData from 'form-data'
 type ScreenshotItemAttribute = {
   key: string
   title: string
+  url: string
   childrens: ScreenshotItemAttribute[]
 }
 
@@ -109,6 +110,7 @@ export const capture = async (
   const attribute: ScreenshotItemAttribute = {
     key,
     title,
+    url: page.url(),
     childrens: [],
   }
 
