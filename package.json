@@ -1,6 +1,6 @@
 {
   "name": "screenright-client",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "screenright's nodejs client library",
   "type": "module",
   "main": "dist/index.js",

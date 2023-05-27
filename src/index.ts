@@ -8,7 +8,7 @@ type ScreenshotItemAttribute = {
   key: string
   title: string
   url: string
-  childrens: ScreenshotItemAttribute[]
+  children: ScreenshotItemAttribute[]
 }
 
 type Result = {
@@ -111,18 +111,18 @@ export const capture = async (
     key,
     title,
     url: page.url(),
-    childrens: [],
+    children: [],
   }
 
   if (parentKey) {
     const searchParent = (attributes: ScreenshotItemAttribute[]) => {
       for (let i = 0; i < attributes.length; i++) {
         if (attributes[i].key === parentKey) {
-          attributes[i].childrens.push(attribute)
+          attributes[i].children.push(attribute)
           break
         }
 
-        searchParent(attributes[i].childrens)
+        searchParent(attributes[i].children)
       }
     }
 
