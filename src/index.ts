@@ -3,6 +3,7 @@ import { Page } from '@playwright/test'
 import fetch from 'node-fetch'
 import process from 'node:process'
 import FormData from 'form-data'
+import { setTimeout } from 'timers/promises'
 
 type ScreenshotItemAttribute = {
   key: string
@@ -77,12 +78,14 @@ export const finalize = async () => {
  * @param {string} key - Unique key. cannot contain slashes.
  * @param {string} title - Page title.
  * @param {string|null} [parentKey] - Parent page key. Creates a hierarchical structure.
+ * @param {{ waitMilliseconds: number }} [options] - Wait milliseconds before capture.
 */
 export const capture = async (
   page: Page,
   key: string,
   title: string,
-  parentKey?: string
+  parentKey?: string,
+  options: { waitMilliseconds: number } = { waitMilliseconds: 0 },
 ) => {
   if (deploymentId === null) {
     return
@@ -91,6 +94,15 @@ export const capture = async (
   if (0 <= key.indexOf('/')) {
     errorOccurred('Capture argument[key] cannot contain slashes.')
     return
+  }
+
+  const { waitMilliseconds } = options
+
+  if (waitMilliseconds) {
+    const nWaitMilliseconds = Number(waitMilliseconds)
+    if (0 < waitMilliseconds) {
+      await setTimeout(waitMilliseconds)
+    }
   }
 
   const fileName = `${key}.jpg`

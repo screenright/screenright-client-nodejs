@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import fetch from 'node-fetch';
 import process from 'node:process';
 import FormData from 'form-data';
+import { setTimeout } from 'timers/promises';
 const result = { screenshotItemAttributes: [] };
 let deploymentId = null;
 const deploymentToken = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN || '';
@@ -61,14 +62,22 @@ export const finalize = () => __awaiter(void 0, void 0, void 0, function* () {
  * @param {string} key - Unique key. cannot contain slashes.
  * @param {string} title - Page title.
  * @param {string|null} [parentKey] - Parent page key. Creates a hierarchical structure.
+ * @param {{ waitMilliseconds: number }} [options] - Wait milliseconds before capture.
 */
-export const capture = (page, key, title, parentKey) => __awaiter(void 0, void 0, void 0, function* () {
+export const capture = (page, key, title, parentKey, options = { waitMilliseconds: 0 }) => __awaiter(void 0, void 0, void 0, function* () {
     if (deploymentId === null) {
         return;
     }
     if (0 <= key.indexOf('/')) {
         errorOccurred('Capture argument[key] cannot contain slashes.');
         return;
+    }
+    const { waitMilliseconds } = options;
+    if (waitMilliseconds) {
+        const nWaitMilliseconds = Number(waitMilliseconds);
+        if (0 < waitMilliseconds) {
+            yield setTimeout(waitMilliseconds);
+        }
     }
     const fileName = `${key}.jpg`;
     try {
