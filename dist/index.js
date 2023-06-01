@@ -55,8 +55,19 @@ export const finalize = () => __awaiter(void 0, void 0, void 0, function* () {
     });
     deploymentId = null;
 });
+/**
+ * Get screen capture.
+ * @param {Page} page - Playwright's page object.
+ * @param {string} key - Unique key. cannot contain slashes.
+ * @param {string} title - Page title.
+ * @param {string|null} [parentKey] - Parent page key. Creates a hierarchical structure.
+*/
 export const capture = (page, key, title, parentKey) => __awaiter(void 0, void 0, void 0, function* () {
     if (deploymentId === null) {
+        return;
+    }
+    if (0 <= key.indexOf('/')) {
+        errorOccurred('Capture argument[key] cannot contain slashes.');
         return;
     }
     const fileName = `${key}.jpg`;

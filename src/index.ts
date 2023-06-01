@@ -71,6 +71,13 @@ export const finalize = async () => {
   deploymentId = null
 }
 
+/**
+ * Get screen capture.
+ * @param {Page} page - Playwright's page object.
+ * @param {string} key - Unique key. cannot contain slashes.
+ * @param {string} title - Page title.
+ * @param {string|null} [parentKey] - Parent page key. Creates a hierarchical structure.
+*/
 export const capture = async (
   page: Page,
   key: string,
@@ -78,6 +85,11 @@ export const capture = async (
   parentKey?: string
 ) => {
   if (deploymentId === null) {
+    return
+  }
+
+  if (0 <= key.indexOf('/')) {
+    errorOccurred('Capture argument[key] cannot contain slashes.')
     return
   }
 
