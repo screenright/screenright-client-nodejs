@@ -22,7 +22,7 @@ const errorOccurred = (message) => {
     deploymentId = null;
 };
 export const initializeScreenwright = (diagramId) => __awaiter(void 0, void 0, void 0, function* () {
-    const _diagramId = process.env.SCREENRIGHT_DIAGRAM_ID;
+    const _diagramId = diagramId || process.env.SCREENRIGHT_DIAGRAM_ID;
     if (!_diagramId || !deploymentToken) {
         errorOccurred('Not set require environments.');
         return;
