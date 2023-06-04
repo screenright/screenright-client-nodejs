@@ -13,10 +13,11 @@ type ScreenshotItemAttribute = {
 }
 
 type Result = {
+  diagramId: string
   screenshotItemAttributes: ScreenshotItemAttribute[]
 }
 
-const result: Result = { screenshotItemAttributes: [] }
+const result: Result = { diagramId: "", screenshotItemAttributes: [] }
 
 let deploymentId: string | null = null
 const deploymentToken: string = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN || ''
@@ -30,16 +31,18 @@ const errorOccurred = (message: string) => {
   deploymentId = null
 }
 
-export const initializeScreenwright = async () => {
+export const initializeScreenwright = async (diagramId?: string) => {
 
-  const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
-  if (!diagramId || !deploymentToken) {
+  const _diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
+  if (!_diagramId || !deploymentToken) {
     errorOccurred('Not set require environments.')
     return
   }
 
+  result.diagramId = _diagramId
+
   try {
-    const response = await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments`, {
+    const response = await fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments`, {
       method: 'POST',
       body: JSON.stringify({ deployment_token: deploymentToken }),
       headers: { 'Content-Type': 'application/json' }
@@ -62,8 +65,7 @@ export const finalize = async () => {
     return
   }
 
-  const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
-  await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/done_upload`, {
+  await fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments/${deploymentId}/done_upload`, {
     method: 'PUT',
     body: JSON.stringify({ deployment_token: deploymentToken, blueprint: JSON.stringify({ screenshotItemAttributes: result.screenshotItemAttributes}) }),
     headers: { 'Content-Type': 'application/json' }
@@ -112,8 +114,7 @@ export const capture = async (
 
     formData.append('file', buffer, fileName)
 
-    const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
-    const response = await fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/screenshot`, {
+    const response = await fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments/${deploymentId}/screenshot`, {
       method: 'POST',
       headers: {
         'X-File-Key': key,

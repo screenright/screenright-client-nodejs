@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-export declare const initializeScreenwright: () => Promise<void>;
+export declare const initializeScreenwright: (diagramId?: string) => Promise<void>;
 export declare const finalize: () => Promise<void>;
 /**
  * Get screen capture.

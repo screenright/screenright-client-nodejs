@@ -11,7 +11,7 @@ import fetch from 'node-fetch';
 import process from 'node:process';
 import FormData from 'form-data';
 import { setTimeout } from 'timers/promises';
-const result = { screenshotItemAttributes: [] };
+const result = { diagramId: "", screenshotItemAttributes: [] };
 let deploymentId = null;
 const deploymentToken = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN || '';
 const baseUrl = () => {
@@ -21,14 +21,15 @@ const errorOccurred = (message) => {
     console.error('[ScreenRight] Error occurred', message);
     deploymentId = null;
 };
-export const initializeScreenwright = () => __awaiter(void 0, void 0, void 0, function* () {
-    const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID;
-    if (!diagramId || !deploymentToken) {
+export const initializeScreenwright = (diagramId) => __awaiter(void 0, void 0, void 0, function* () {
+    const _diagramId = process.env.SCREENRIGHT_DIAGRAM_ID;
+    if (!_diagramId || !deploymentToken) {
         errorOccurred('Not set require environments.');
         return;
     }
+    result.diagramId = _diagramId;
     try {
-        const response = yield fetch(`${baseUrl()}/diagrams/${diagramId}/deployments`, {
+        const response = yield fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments`, {
             method: 'POST',
             body: JSON.stringify({ deployment_token: deploymentToken }),
             headers: { 'Content-Type': 'application/json' }
@@ -48,8 +49,7 @@ export const finalize = () => __awaiter(void 0, void 0, void 0, function* () {
     if (!deploymentId) {
         return;
     }
-    const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID;
-    yield fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/done_upload`, {
+    yield fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments/${deploymentId}/done_upload`, {
         method: 'PUT',
         body: JSON.stringify({ deployment_token: deploymentToken, blueprint: JSON.stringify({ screenshotItemAttributes: result.screenshotItemAttributes }) }),
         headers: { 'Content-Type': 'application/json' }
@@ -84,8 +84,7 @@ export const capture = (page, key, title, parentKey, options = { waitMillisecond
         const buffer = yield page.screenshot({ fullPage: true, type: 'jpeg' });
         const formData = new FormData();
         formData.append('file', buffer, fileName);
-        const diagramId = process.env.SCREENRIGHT_DIAGRAM_ID;
-        const response = yield fetch(`${baseUrl()}/diagrams/${diagramId}/deployments/${deploymentId}/screenshot`, {
+        const response = yield fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments/${deploymentId}/screenshot`, {
             method: 'POST',
             headers: {
                 'X-File-Key': key,
