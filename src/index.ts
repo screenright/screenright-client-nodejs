@@ -33,7 +33,7 @@ const errorOccurred = (message: string) => {
 
 export const initializeScreenwright = async (diagramId?: string) => {
 
-  const _diagramId = process.env.SCREENRIGHT_DIAGRAM_ID
+  const _diagramId = diagramId || process.env.SCREENRIGHT_DIAGRAM_ID
   if (!_diagramId || !deploymentToken) {
     errorOccurred('Not set require environments.')
     return
