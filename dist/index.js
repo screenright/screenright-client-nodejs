@@ -11,7 +11,7 @@ import fetch from 'node-fetch';
 import process from 'node:process';
 import FormData from 'form-data';
 import { setTimeout } from 'timers/promises';
-const result = { diagramId: "", screenshotItemAttributes: [] };
+const result = { diagramId: "", screenshotItemAttributes: [], annotations: {} };
 let deploymentId = null;
 const deploymentToken = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN || '';
 const baseUrl = () => {
@@ -51,7 +51,7 @@ export const finalize = () => __awaiter(void 0, void 0, void 0, function* () {
     }
     yield fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments/${deploymentId}/done_upload`, {
         method: 'PUT',
-        body: JSON.stringify({ deployment_token: deploymentToken, blueprint: JSON.stringify({ screenshotItemAttributes: result.screenshotItemAttributes }) }),
+        body: JSON.stringify({ deployment_token: deploymentToken, blueprint: JSON.stringify({ screenshotItemAttributes: result.screenshotItemAttributes, annotations: result.annotations }) }),
         headers: { 'Content-Type': 'application/json' }
     });
     deploymentId = null;
@@ -62,9 +62,9 @@ export const finalize = () => __awaiter(void 0, void 0, void 0, function* () {
  * @param {string} key - Unique key. cannot contain slashes.
  * @param {string} title - Page title.
  * @param {string|null} [parentKey] - Parent page key. Creates a hierarchical structure.
- * @param {{ waitMilliseconds: number }} [options] - Wait milliseconds before capture.
+ * @param {{ waitMilliseconds: number = 0, clickLocatorSelector: string, annotationText: string = "", paddingPixel: number = 4, annotationDirection: AnnotationDirection = "bottom", AnnotationTextColor = "red" }} [options] - Wait milliseconds before capture.
 */
-export const capture = (page, key, title, parentKey, options = { waitMilliseconds: 0 }) => __awaiter(void 0, void 0, void 0, function* () {
+export const capture = (page, key, title, parentKey, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
     if (deploymentId === null) {
         return;
     }
@@ -72,7 +72,13 @@ export const capture = (page, key, title, parentKey, options = { waitMillisecond
         errorOccurred('Capture argument[key] cannot contain slashes.');
         return;
     }
-    const { waitMilliseconds } = options;
+    let { waitMilliseconds, clickLocatorSelector, annotationText, paddingPixel, annotationDirection, annotationTextColor } = options;
+    waitMilliseconds = waitMilliseconds || 0;
+    clickLocatorSelector = clickLocatorSelector || undefined;
+    annotationText = annotationText || "";
+    paddingPixel = paddingPixel || 4;
+    annotationDirection = annotationDirection || "bottom";
+    annotationTextColor = annotationTextColor || "red";
     if (waitMilliseconds) {
         const nWaitMilliseconds = Number(waitMilliseconds);
         if (0 < waitMilliseconds) {
@@ -121,5 +127,21 @@ export const capture = (page, key, title, parentKey, options = { waitMillisecond
     }
     else {
         result.screenshotItemAttributes.push(attribute);
+    }
+    if (clickLocatorSelector !== undefined) {
+        const locator = page.locator(clickLocatorSelector);
+        const bounding = (yield locator.boundingBox());
+        const annotation = {
+            x: bounding.x,
+            y: bounding.y,
+            width: bounding.width,
+            height: bounding.height,
+            text: annotationText,
+            paddingPixel,
+            direction: annotationDirection,
+            textColor: annotationTextColor,
+        };
+        result.annotations[key] = annotation;
+        yield locator.click();
     }
 });

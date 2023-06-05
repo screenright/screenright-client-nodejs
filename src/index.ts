@@ -15,9 +15,21 @@ type ScreenshotItemAttribute = {
 type Result = {
   diagramId: string
   screenshotItemAttributes: ScreenshotItemAttribute[]
+  annotations: { [index: string]: Annotation }
 }
 
-const result: Result = { diagramId: "", screenshotItemAttributes: [] }
+type Annotation = {
+  x: number
+  y: number
+  width: number
+  height: number
+  text: string
+  paddingPixel: number
+  direction: AnnotationDirection
+  textColor: AnnotationTextColor
+}
+
+const result: Result = { diagramId: "", screenshotItemAttributes: [], annotations: {} }
 
 let deploymentId: string | null = null
 const deploymentToken: string = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN || ''
@@ -67,11 +79,23 @@ export const finalize = async () => {
 
   await fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments/${deploymentId}/done_upload`, {
     method: 'PUT',
-    body: JSON.stringify({ deployment_token: deploymentToken, blueprint: JSON.stringify({ screenshotItemAttributes: result.screenshotItemAttributes}) }),
+    body: JSON.stringify({ deployment_token: deploymentToken, blueprint: JSON.stringify({ screenshotItemAttributes: result.screenshotItemAttributes, annotations: result.annotations}) }),
     headers: { 'Content-Type': 'application/json' }
   })
 
   deploymentId = null
+}
+
+type AnnotationDirection = "top" | "right" | "bottom" | "left"
+type AnnotationTextColor = "red" | "blue" | "black" | "white" | "yellow" | "green"
+
+type CaptureOptions = {
+  waitMilliseconds?: number
+  clickLocatorSelector?: string | undefined
+  annotationText?: string | undefined
+  paddingPixel?: number | undefined
+  annotationDirection?: AnnotationDirection | undefined
+  annotationTextColor?: AnnotationTextColor | undefined
 }
 
 /**
@@ -80,14 +104,14 @@ export const finalize = async () => {
  * @param {string} key - Unique key. cannot contain slashes.
  * @param {string} title - Page title.
  * @param {string|null} [parentKey] - Parent page key. Creates a hierarchical structure.
- * @param {{ waitMilliseconds: number }} [options] - Wait milliseconds before capture.
+ * @param {{ waitMilliseconds: number = 0, clickLocatorSelector: string, annotationText: string = "", paddingPixel: number = 4, annotationDirection: AnnotationDirection = "bottom", AnnotationTextColor = "red" }} [options] - Wait milliseconds before capture.
 */
 export const capture = async (
   page: Page,
   key: string,
   title: string,
-  parentKey?: string,
-  options: { waitMilliseconds: number } = { waitMilliseconds: 0 },
+  parentKey?: string | undefined,
+  options: CaptureOptions = {}
 ) => {
   if (deploymentId === null) {
     return
@@ -98,7 +122,21 @@ export const capture = async (
     return
   }
 
-  const { waitMilliseconds } = options
+  let {
+    waitMilliseconds,
+    clickLocatorSelector,
+    annotationText,
+    paddingPixel,
+    annotationDirection,
+    annotationTextColor
+  } = options
+
+  waitMilliseconds = waitMilliseconds || 0
+  clickLocatorSelector = clickLocatorSelector || undefined
+  annotationText = annotationText || ""
+  paddingPixel = paddingPixel || 4
+  annotationDirection = annotationDirection || "bottom"
+  annotationTextColor = annotationTextColor || "red"
 
   if (waitMilliseconds) {
     const nWaitMilliseconds = Number(waitMilliseconds)
@@ -154,5 +192,24 @@ export const capture = async (
     searchParent(result.screenshotItemAttributes)
   } else {
     result.screenshotItemAttributes.push(attribute)
+  }
+
+  if (clickLocatorSelector !== undefined) {
+    const locator = page.locator(clickLocatorSelector!)
+    const bounding = (await locator.boundingBox())!
+    const annotation = {
+      x: bounding.x,
+      y: bounding.y,
+      width: bounding.width,
+      height: bounding.height,
+      text: annotationText,
+      paddingPixel,
+      direction: annotationDirection,
+      textColor: annotationTextColor,
+    }
+
+    result.annotations[key] = annotation
+
+    await locator.click()
   }
 }
