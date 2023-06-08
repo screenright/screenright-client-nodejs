@@ -10,6 +10,7 @@ type CaptureOptions = {
     paddingPixel?: number | undefined;
     annotationDirection?: AnnotationDirection | undefined;
     annotationTextColor?: AnnotationTextColor | undefined;
+    description?: string | undefined;
 };
 /**
  * Get screen capture.

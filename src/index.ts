@@ -10,6 +10,7 @@ type ScreenshotItemAttribute = {
   title: string
   url: string
   children: ScreenshotItemAttribute[]
+  description: string
 }
 
 type Result = {
@@ -96,6 +97,7 @@ type CaptureOptions = {
   paddingPixel?: number | undefined
   annotationDirection?: AnnotationDirection | undefined
   annotationTextColor?: AnnotationTextColor | undefined
+  description?: string | undefined
 }
 
 /**
@@ -128,7 +130,8 @@ export const capture = async (
     annotationText,
     paddingPixel,
     annotationDirection,
-    annotationTextColor
+    annotationTextColor,
+    description
   } = options
 
   waitMilliseconds = waitMilliseconds || 0
@@ -137,6 +140,7 @@ export const capture = async (
   paddingPixel = paddingPixel || 4
   annotationDirection = annotationDirection || "bottom"
   annotationTextColor = annotationTextColor || "red"
+  description = description || ""
 
   if (waitMilliseconds) {
     const nWaitMilliseconds = Number(waitMilliseconds)
@@ -175,6 +179,7 @@ export const capture = async (
     title,
     url: page.url(),
     children: [],
+    description: "",
   }
 
   if (parentKey) {
@@ -206,6 +211,7 @@ export const capture = async (
       paddingPixel,
       direction: annotationDirection,
       textColor: annotationTextColor,
+      description,
     }
 
     result.annotations[key] = annotation

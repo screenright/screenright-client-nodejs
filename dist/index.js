@@ -72,13 +72,14 @@ export const capture = (page, key, title, parentKey, options = {}) => __awaiter(
         errorOccurred('Capture argument[key] cannot contain slashes.');
         return;
     }
-    let { waitMilliseconds, clickLocatorSelector, annotationText, paddingPixel, annotationDirection, annotationTextColor } = options;
+    let { waitMilliseconds, clickLocatorSelector, annotationText, paddingPixel, annotationDirection, annotationTextColor, description } = options;
     waitMilliseconds = waitMilliseconds || 0;
     clickLocatorSelector = clickLocatorSelector || undefined;
     annotationText = annotationText || "";
     paddingPixel = paddingPixel || 4;
     annotationDirection = annotationDirection || "bottom";
     annotationTextColor = annotationTextColor || "red";
+    description = description || "";
     if (waitMilliseconds) {
         const nWaitMilliseconds = Number(waitMilliseconds);
         if (0 < waitMilliseconds) {
@@ -112,6 +113,7 @@ export const capture = (page, key, title, parentKey, options = {}) => __awaiter(
         title,
         url: page.url(),
         children: [],
+        description: "",
     };
     if (parentKey) {
         const searchParent = (attributes) => {
@@ -140,6 +142,7 @@ export const capture = (page, key, title, parentKey, options = {}) => __awaiter(
             paddingPixel,
             direction: annotationDirection,
             textColor: annotationTextColor,
+            description,
         };
         result.annotations[key] = annotation;
         yield locator.click();
