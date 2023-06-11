@@ -1,4 +1,3 @@
-import * as fs from 'fs'
 import { Page } from '@playwright/test'
 import fetch from 'node-fetch'
 import process from 'node:process'
@@ -35,9 +34,7 @@ const result: Result = { diagramId: "", screenshotItemAttributes: [], annotation
 let deploymentId: string | null = null
 const deploymentToken: string = process.env.SCREENRIGHT_DEPLOYMENT_TOKEN || ''
 
-const baseUrl = () => {
-  return `${process.env.SCREENRIGHT_ENDPOINT}/client_api`
-}
+const baseUrl = `${process.env.SCREENRIGHT_ENDPOINT || 'https://screenright.app'}/client_api`
 
 const errorOccurred = (message: string) => {
   console.error('[ScreenRight] Error occurred', message)
@@ -55,7 +52,7 @@ export const initializeScreenwright = async (diagramId?: string) => {
   result.diagramId = _diagramId
 
   try {
-    const response = await fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments`, {
+    const response = await fetch(`${baseUrl}/diagrams/${result.diagramId}/deployments`, {
       method: 'POST',
       body: JSON.stringify({ deployment_token: deploymentToken }),
       headers: { 'Content-Type': 'application/json' }
@@ -78,9 +75,15 @@ export const finalize = async () => {
     return
   }
 
-  await fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments/${deploymentId}/done_upload`, {
+  await fetch(`${baseUrl}/diagrams/${result.diagramId}/deployments/${deploymentId}/done_upload`, {
     method: 'PUT',
-    body: JSON.stringify({ deployment_token: deploymentToken, blueprint: JSON.stringify({ screenshotItemAttributes: result.screenshotItemAttributes, annotations: result.annotations}) }),
+    body: JSON.stringify({
+      deployment_token: deploymentToken,
+      blueprint: JSON.stringify({
+        screenshotItemAttributes: result.screenshotItemAttributes,
+        annotations: result.annotations
+      })
+    }),
     headers: { 'Content-Type': 'application/json' }
   })
 
@@ -106,7 +109,13 @@ type CaptureOptions = {
  * @param {string} key - Unique key. cannot contain slashes.
  * @param {string} title - Page title.
  * @param {string|null} [parentKey] - Parent page key. Creates a hierarchical structure.
- * @param {{ waitMilliseconds: number = 0, clickLocatorSelector: string, annotationText: string = "", paddingPixel: number = 4, annotationDirection: AnnotationDirection = "bottom", AnnotationTextColor = "red" }} [options] - Wait milliseconds before capture.
+ * @param {{}} [options] -
+ *   waitMilliseconds: number = 0, Wait milliseconds before capture.
+ *   clickLocatorSelector: string,
+ *   annotationText: string = "",
+ *   paddingPixel: number = 4,
+ *   annotationDirection: AnnotationDirection = "bottom",
+ *   AnnotationTextColor = "red"
 */
 export const capture = async (
   page: Page,
@@ -156,7 +165,7 @@ export const capture = async (
 
     formData.append('file', buffer, fileName)
 
-    const response = await fetch(`${baseUrl()}/diagrams/${result.diagramId}/deployments/${deploymentId}/screenshot`, {
+    const response = await fetch(`${baseUrl}/diagrams/${result.diagramId}/deployments/${deploymentId}/screenshot`, {
       method: 'POST',
       headers: {
         'X-File-Key': key,
